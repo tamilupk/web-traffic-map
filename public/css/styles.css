@@ -318,32 +318,41 @@ input[type="date"].filter-input {
   box-shadow: var(--md-shadow-2);
 }
 
-/* Date Range Stack */
-.date-range-stack {
+/* Date Range */
+.date-range {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 8px;
+  background: var(--md-surface);
+  padding: 4px;
+  border: 1px solid var(--md-surface-dim);
+  border-radius: var(--md-radius-sm);
 }
 
-.date-input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.date-range .filter-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  background-image: none;
 }
 
-.date-input-label {
-  font-size: 11px;
-  font-weight: 600;
+.date-range .filter-input:focus {
+  box-shadow: none;
+  background: var(--md-primary-container);
+  color: var(--md-on-primary-container);
+  border-radius: var(--md-radius-xs);
+}
+
+.date-separator {
   color: var(--md-on-surface-variant);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Date input specific */
-input[type="datetime-local"].filter-input {
-  width: 100%;
-  font-family: 'Inter', sans-serif; /* Ensure consistent font for date input */
-  color: var(--md-on-surface);
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+  padding: 0 4px;
 }
 
 /* Toggle Switch */
