@@ -70,10 +70,14 @@ async function main() {
 
   // Process any ungelocated IPs in the background
   setTimeout(async () => {
-    console.log('\nProcessing ungelocated IPs...');
-    const processed = await processUngelocatedIps(100);
-    if (processed > 0) {
-      console.log(`Geo data fetched for ${processed} IPs`);
+    try {
+      console.log('\nProcessing ungelocated IPs...');
+      const processed = await processUngelocatedIps(100);
+      if (processed > 0) {
+        console.log(`Geo data fetched for ${processed} IPs`);
+      }
+    } catch (error) {
+      console.error('Error processing ungelocated IPs:', error);
     }
   }, 2000);
 
