@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Traffic Map</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Mobile FAB Toggle -->
+    <button class="mobile-fab" id="sidebar-toggle" aria-label="Toggle Menu">
+      <svg class="fab-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+      </svg>
+    </button>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="header-content">
+          <h1 class="logo">Traffic Map</h1>
+          <p class="subtitle">Visitor Analytics</p>
+        </div>
+        <button class="refresh-btn" id="refresh-data" aria-label="Refresh Data" title="Refresh Data">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Stats Overview -->
+      <div class="stats-card">
+        <div class="stat-item">
+          <span class="stat-value" id="stat-total">--</span>
+          <span class="stat-label">Total Requests</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="stat-unique">--</span>
+          <span class="stat-label">Unique Visitors</span>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <h2 class="section-title">Filters</h2>
+
+        <!-- Domain Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-domain">Domain</label>
+          <select id="filter-domain" class="filter-select">
+            <option value="">All Domains</option>
+          </select>
+        </div>
+
+        <!-- Device Type Filter -->
+        <div class="filter-group">
+          <label class="filter-label">Device Type</label>
+          <div class="chip-group" id="device-chips">
+            <button class="chip active" data-value="">All</button>
+            <button class="chip" data-value="desktop">Desktop</button>
+            <button class="chip" data-value="mobile">Mobile</button>
+            <button class="chip" data-value="tablet">Tablet</button>
+            <button class="chip" data-value="bot">Bot</button>
+          </div>
+        </div>
+
+        <!-- Date Range Filter -->
+        <div class="filter-group">
+          <label class="filter-label">Date Range</label>
+          <div class="date-range-stack">
+            <div class="date-input-group">
+              <label for="filter-start-date" class="date-input-label">Start</label>
+              <input type="datetime-local" id="filter-start-date" class="filter-input">
+            </div>
+            <div class="date-input-group">
+              <label for="filter-end-date" class="date-input-label">End</label>
+              <input type="datetime-local" id="filter-end-date" class="filter-input">
+            </div>
+          </div>
+        </div>
+
+
+
+        <!-- Country Filter -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-country">Country</label>
+          <select id="filter-country" class="filter-select">
+            <option value="">All Countries</option>
+          </select>
+        </div>
+
+        <!-- Home Page Only Toggle -->
+        <div class="filter-group">
+          <label class="toggle-container">
+            <input type="checkbox" id="filter-home-only">
+            <span class="toggle-slider"></span>
+            <span class="toggle-label">Home Page Only</span>
+          </label>
+        </div>
+
+        <!-- Reset Button -->
+        <div class="filter-actions">
+          <button class="btn btn-secondary" id="reset-filters">Reset Filters</button>
+        </div>
+      </div>
+
+      <!-- Top Countries -->
+      <div class="top-countries">
+        <h2 class="section-title">Top Countries</h2>
+        <ul class="country-list" id="country-list">
+          <li class="country-item loading">Loading...</li>
+        </ul>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Map Container -->
+      <div id="map"></div>
+
+      <!-- Zoom Level Indicator -->
+      <div class="zoom-indicator">
+        <span class="zoom-label">Aggregation:</span>
+        <span class="zoom-level" id="zoom-level">Country</span>
+      </div>
+
+      <!-- Loading Overlay -->
+      <div class="loading-overlay" id="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- Data Modal -->
+  <div class="modal-overlay" id="data-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Request Details</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Domain</th>
+              <th>Status</th>
+              <th>Method</th>
+              <th>Device</th>
+              <th>IP</th>
+              <th>ISP</th>
+              <th>Requests</th>
+            </tr>
+          </thead>
+          <tbody id="modal-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- App JS -->
+  <script src="/js/app.js"></script>
+  <script src="/js/map.js"></script>
+  <script src="/js/filters.js"></script>
+</body>
+</html>

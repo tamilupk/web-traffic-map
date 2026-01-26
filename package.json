@@ -1,0 +1,34 @@
+{
+  "name": "web-traffic-map",
+  "version": "1.0.0",
+  "description": "Web traffic visualization tool that parses nginx access logs and displays visitor locations on an interactive map",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "docker:build": "docker build -t web-traffic-map .",
+    "docker:run": "docker-compose up -d",
+    "docker:stop": "docker-compose down"
+  },
+  "keywords": [
+    "nginx",
+    "logs",
+    "traffic",
+    "analytics",
+    "map",
+    "visualization",
+    "geolocation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.9",
+    "better-sqlite3": "^12.6.2",
+    "chokidar": "^5.0.0",
+    "hono": "^4.11.5"
+  }
+}
