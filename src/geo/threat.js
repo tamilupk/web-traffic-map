@@ -37,8 +37,8 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
     - Excessive scanning/crawling for sensitive files (.env, .git, config.php, etc.)
     - Suspicious User-Agents or exploit attempts
     
-    Requests (last 50 in this 5-min window):
-    ${JSON.stringify(requests.slice(-50), null, 2)}
+    Requests (all entries in this 1-hour window):
+    ${JSON.stringify(requests, null, 2)}
     
     If the behavior is safe/normal (e.g. standard health checks, simple home page hits), return: {"threat_found": false}
     

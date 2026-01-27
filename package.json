@@ -5,7 +5,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "dev": "node --watch src/index.js",
+    "dev": "node --watch --inspect src/index.js",
     "docker:build": "docker build -t web-traffic-map .",
     "docker:run": "docker-compose up -d",
     "docker:stop": "docker-compose down"
