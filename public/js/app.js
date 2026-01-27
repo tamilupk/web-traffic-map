@@ -379,17 +379,21 @@ function showSnackbar(hit) {
       <span class="snackbar-title">New Visitor</span>
     </div>
     <div class="snackbar-content">
+      <div class="snackbar-item full-width">
+        <span class="snackbar-label">Domain</span>
+        <span class="snackbar-value" title="${hit.host}">${hit.host}</span>
+      </div>
       <div class="snackbar-item">
         <span class="snackbar-label">IP Address</span>
         <span class="snackbar-value">${hit.client_ip}</span>
       </div>
       <div class="snackbar-item">
-        <span class="snackbar-label">Location</span>
-        <span class="snackbar-value">${location}</span>
-      </div>
-      <div class="snackbar-item">
         <span class="snackbar-label">Device</span>
         <span class="snackbar-value">${hit.device_type || 'unknown'}</span>
+      </div>
+      <div class="snackbar-item">
+        <span class="snackbar-label">Location</span>
+        <span class="snackbar-value">${location}</span>
       </div>
       <div class="snackbar-item">
         <span class="snackbar-label">ISP</span>

@@ -1468,6 +1468,10 @@ input[type="datetime-local"].filter-input {
   gap: 2px;
 }
 
+.snackbar-item.full-width {
+  grid-column: span 2;
+}
+
 .snackbar-label {
   font-size: 10px;
   color: rgba(255, 255, 255, 0.5);
