@@ -31,8 +31,29 @@ function initDatabase() {
 
   createTables();
   createIndexes();
+  runMigrations();
 
   return db;
+}
+
+/**
+ * Run database migrations
+ */
+function runMigrations() {
+  // Check if explanation column exists in threat_incidents
+  const tableInfo = db.prepare("PRAGMA table_info(threat_incidents)").all();
+  const hasExplanation = tableInfo.some(col => col.name === 'explanation');
+  const hasHost = tableInfo.some(col => col.name === 'host');
+
+  if (!hasExplanation) {
+    console.log('Migrating database: adding explanation column to threat_incidents');
+    db.exec("ALTER TABLE threat_incidents ADD COLUMN explanation TEXT");
+  }
+
+  if (!hasHost) {
+    console.log('Migrating database: adding host column to threat_incidents');
+    db.exec("ALTER TABLE threat_incidents ADD COLUMN host TEXT");
+  }
 }
 
 /**
