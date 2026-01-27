@@ -11,16 +11,17 @@ const { saveThreatIncident } = require('../db/queries');
 let genAI = null;
 
 /**
- * Call Gemini API to analyze a batch of logs for a specific IP
+ * Call Gemini API to analyze a batch of logs for a specific IP and Domain
  * @param {string} ip - IP address
  * @param {Array} requests - List of request objects
  * @param {number} timestamp - Representative timestamp for the batch
+ * @param {string} host - Target domain
  * @returns {Promise<boolean>} True if a threat was found and saved
  */
-async function analyzeIpBehavior(ip, requests, timestamp) {
+async function analyzeIpBehavior(ip, requests, timestamp, host) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return runHeuristicAnalysis(ip, requests, timestamp);
+    return runHeuristicAnalysis(ip, requests, timestamp, host);
   }
 
   // Initialize SDK if not already done
@@ -29,7 +30,7 @@ async function analyzeIpBehavior(ip, requests, timestamp) {
   }
 
   const prompt = `
-    Analyze the following web server traffic logs for IP address ${ip}.
+    Analyze the following web server traffic logs for IP address ${ip} targeting domain ${host}.
     Identify potential malicious behavior such as:
     - Path traversal attempts (e.g., ../, /etc/passwd)
     - SQL injection patterns
@@ -74,8 +75,9 @@ async function analyzeIpBehavior(ip, requests, timestamp) {
 
     let fullText = '';
     for await (const chunk of response) {
-      if (chunk.text) {
-        fullText += chunk.text;
+      const part = chunk.candidates?.[0]?.content?.parts?.[0];
+      if (part && part.text) {
+        fullText += part.text;
       }
     }
 
@@ -87,12 +89,13 @@ async function analyzeIpBehavior(ip, requests, timestamp) {
       content = JSON.parse(cleanText);
     } catch (parseError) {
       console.error(`LLM Parse error for ${ip}:`, parseError.message);
-      return runHeuristicAnalysis(ip, requests, timestamp);
+      return runHeuristicAnalysis(ip, requests, timestamp, host);
     }
 
     if (content.threat_found) {
       saveThreatIncident({
         ip,
+        host,
         incident_date: new Date(timestamp * 1000).toISOString(),
         incident_unix: timestamp,
         risk_score: content.risk_score,
@@ -105,7 +108,7 @@ async function analyzeIpBehavior(ip, requests, timestamp) {
     }
   } catch (error) {
     console.error(`LLM Analysis failed for ${ip}:`, error.message);
-    return runHeuristicAnalysis(ip, requests, timestamp);
+    return runHeuristicAnalysis(ip, requests, timestamp, host);
   }
   return false;
 }
@@ -113,7 +116,7 @@ async function analyzeIpBehavior(ip, requests, timestamp) {
 /**
  * Fallback Heuristic Analysis
  */
-function runHeuristicAnalysis(ip, requests, timestamp) {
+function runHeuristicAnalysis(ip, requests, timestamp, host) {
   let score = 0;
   const findings = [];
   
@@ -139,6 +142,7 @@ function runHeuristicAnalysis(ip, requests, timestamp) {
     const level = score > 80 ? 'critical' : (score > 50 ? 'high' : (score > 25 ? 'medium' : 'low'));
     saveThreatIncident({
       ip,
+      host,
       incident_date: new Date(timestamp * 1000).toISOString(),
       incident_unix: timestamp,
       risk_score: Math.min(score, 100),

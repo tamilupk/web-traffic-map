@@ -76,6 +76,7 @@ function createTables() {
     CREATE TABLE IF NOT EXISTS threat_incidents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ip TEXT NOT NULL,
+      host TEXT,
       incident_date TEXT NOT NULL,
       incident_unix INTEGER NOT NULL,
       risk_score INTEGER DEFAULT 0,

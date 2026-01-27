@@ -477,30 +477,32 @@ function setLastThreatScanTime(timestamp) {
 }
 
 /**
- * Get logs in a specific time range grouped by IP
+ * Get logs in a specific time range grouped by IP and Host
  * @param {number} startTime - Unix timestamp
  * @param {number} endTime - Unix timestamp
- * @returns {Array<Object>} Logs grouped by IP
+ * @returns {Array<Object>} Logs grouped by IP and host
  */
 function getLogsForAnalysis(startTime, endTime) {
   const db = getDatabase();
   const rows = db.prepare(`
-    SELECT client_ip, path, method, status, user_agent, timestamp
+    SELECT client_ip, host, path, method, status, user_agent, timestamp
     FROM logs
     WHERE timestamp_unix >= ? AND timestamp_unix < ?
     ORDER BY timestamp_unix ASC
   `).all(startTime, endTime);
 
-  // Group by IP
+  // Group by IP and Host
   const grouped = {};
   rows.forEach(row => {
-    if (!grouped[row.client_ip]) {
-      grouped[row.client_ip] = {
+    const key = `${row.client_ip}_${row.host}`;
+    if (!grouped[key]) {
+      grouped[key] = {
         ip: row.client_ip,
+        host: row.host,
         requests: []
       };
     }
-    grouped[row.client_ip].requests.push({
+    grouped[key].requests.push({
       path: row.path,
       method: row.method,
       status: row.status,
@@ -520,10 +522,10 @@ function saveThreatIncident(incident) {
   const db = getDatabase();
   db.prepare(`
     INSERT INTO threat_incidents (
-      ip, incident_date, incident_unix, risk_score, 
+      ip, host, incident_date, incident_unix, risk_score, 
       threat_level, summary, details, request_count
     ) VALUES (
-      @ip, @incident_date, @incident_unix, @risk_score, 
+      @ip, @host, @incident_date, @incident_unix, @risk_score, 
       @threat_level, @summary, @details, @request_count
     )
   `).run({

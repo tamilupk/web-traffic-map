@@ -29,13 +29,12 @@ async function scanWindow(startTime) {
 
   const groupedLogs = getLogsForAnalysis(startTime, endTime);
   
-  if (groupedLogs.length > 0) {
-    // Process IPs sequentially to respect LLM rate limits
-    for (const group of groupedLogs) {
-      await analyzeIpBehavior(group.ip, group.requests, startTime);
-    }
-  }
-
+      if (groupedLogs.length > 0) {
+        // Process IPs sequentially to respect LLM rate limits
+        for (const group of groupedLogs) {
+          await analyzeIpBehavior(group.ip, group.requests, startTime, group.host);
+        }
+      }
   setLastThreatScanTime(endTime);
   return endTime;
 }

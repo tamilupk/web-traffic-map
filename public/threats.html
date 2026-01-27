@@ -103,6 +103,25 @@
       color: var(--md-on-surface);
     }
 
+    .threat-domain {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--md-primary);
+      margin-top: -8px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .threat-domain::before {
+      content: 'Targeting:';
+      color: var(--md-on-surface-variant);
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
     .threat-badge {
       padding: 4px 12px;
       border-radius: 20px;
@@ -244,9 +263,11 @@
                 <div class="threat-ip">${incident.ip}</div>
                 <span class="threat-badge badge-${incident.threat_level}">${incident.threat_level}</span>
               </div>
+              <div class="threat-domain">${incident.host || 'Unknown Domain'}</div>
               <div class="threat-summary">${incident.summary}</div>
               <div class="threat-findings">
-                ${findings.map(f => `<span class="finding-chip">${f}</span>`).join('')}
+                <div style="width: 100%; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--md-on-surface-variant); margin-bottom: 8px;">Identified Patterns:</div>
+                ${findings.map(f => `<div class="finding-chip">${f}</div>`).join('')}
               </div>
               <div class="threat-footer">
                 <div class="footer-item">

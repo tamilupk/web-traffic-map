@@ -256,5 +256,7 @@ module.exports = {
   handleGetDomains,
   handleGetCountries,
   handleGetStatus,
-  handleProcessGeo
+  handleProcessGeo,
+  handleGetThreats,
+  handleRescanThreats
 };
