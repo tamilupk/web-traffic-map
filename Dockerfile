@@ -17,8 +17,8 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install required build tools for better-sqlite3
-RUN apk add --no-cache python3 make g++
+# Install required build tools for better-sqlite3 and curl for healthcheck
+RUN apk add --no-cache python3 make g++ curl
 
 # Copy node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
@@ -44,8 +44,8 @@ ENV LOG_DIR=/logs
 EXPOSE 30045
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:30045/api/status || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD curl -f http://127.0.0.1:30045/api/status || exit 1
 
 # Start the application
 CMD ["node", "src/index.js"]
