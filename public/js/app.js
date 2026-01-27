@@ -461,7 +461,7 @@ function formatNumber(num) {
 async function startLivePolling() {
   // Initial fetch to get the current latest ID
   try {
-    const result = await fetchAPI('logs', { limit: 1 });
+    const result = await fetchAPI('logs', { limit: 1, home_only: true });
     if (result.success && result.data.length > 0) {
       AppState.lastLogId = result.data[0].id;
     }
@@ -473,7 +473,7 @@ async function startLivePolling() {
   setInterval(async () => {
     try {
       // Fetch the latest hits
-      const result = await fetchAPI('logs', { limit: 5 });
+      const result = await fetchAPI('logs', { limit: 5, home_only: true });
       if (result.success && result.data.length > 0) {
         const newHits = [];
         
