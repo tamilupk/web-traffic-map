@@ -93,6 +93,7 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
     }
 
     if (content.threat_found) {
+      console.log(`\n    🚩 [AI] Threat Detected: ${ip} -> ${host} (Level: ${content.threat_level.toUpperCase()})`);
       saveThreatIncident({
         ip,
         host,
@@ -107,7 +108,7 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
       return true;
     }
   } catch (error) {
-    console.error(`LLM Analysis failed for ${ip}:`, error.message);
+    console.error(`\n    ⚠️ [AI] Analysis failed for ${ip}:`, error.message);
     return runHeuristicAnalysis(ip, requests, timestamp, host);
   }
   return false;
@@ -140,6 +141,7 @@ function runHeuristicAnalysis(ip, requests, timestamp, host) {
 
   if (score >= 15) {
     const level = score > 80 ? 'critical' : (score > 50 ? 'high' : (score > 25 ? 'medium' : 'low'));
+    console.log(`\n    🔍 [Heuristic] Pattern Match: ${ip} -> ${host} (Score: ${score})`);
     saveThreatIncident({
       ip,
       host,
