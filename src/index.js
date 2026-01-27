@@ -95,7 +95,8 @@ async function main() {
   console.log(`\nStarting server on port ${config.port}...`);
   serve({
     fetch: app.fetch,
-    port: config.port
+    port: config.port,
+    hostname: '0.0.0.0'
   }, (info) => {
     console.log(`\nServer running at http://localhost:${info.port}`);
     console.log('\nAPI Endpoints:');
