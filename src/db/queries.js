@@ -86,12 +86,14 @@ function queryLogs(filters = {}) {
 
   if (filters.start_date) {
     conditions.push('l.timestamp_unix >= @start_unix');
-    params.start_unix = Math.floor(new Date(filters.start_date + 'T00:00:00').getTime() / 1000);
+    const startDate = filters.start_date.includes('T') ? filters.start_date : filters.start_date + 'T00:00:00';
+    params.start_unix = Math.floor(new Date(startDate).getTime() / 1000);
   }
 
   if (filters.end_date) {
     conditions.push('l.timestamp_unix <= @end_unix');
-    params.end_unix = Math.floor(new Date(filters.end_date + 'T23:59:59').getTime() / 1000);
+    const endDate = filters.end_date.includes('T') ? filters.end_date : filters.end_date + 'T23:59:59';
+    params.end_unix = Math.floor(new Date(endDate).getTime() / 1000);
   }
 
   if (filters.ip) {
@@ -168,12 +170,14 @@ function getStats(filters = {}) {
 
   if (filters.start_date) {
     conditions.push('l.timestamp_unix >= @start_unix');
-    params.start_unix = Math.floor(new Date(filters.start_date + 'T00:00:00').getTime() / 1000);
+    const startDate = filters.start_date.includes('T') ? filters.start_date : filters.start_date + 'T00:00:00';
+    params.start_unix = Math.floor(new Date(startDate).getTime() / 1000);
   }
 
   if (filters.end_date) {
     conditions.push('l.timestamp_unix <= @end_unix');
-    params.end_unix = Math.floor(new Date(filters.end_date + 'T23:59:59').getTime() / 1000);
+    const endDate = filters.end_date.includes('T') ? filters.end_date : filters.end_date + 'T23:59:59';
+    params.end_unix = Math.floor(new Date(endDate).getTime() / 1000);
   }
 
   if (filters.ip) {
@@ -261,12 +265,14 @@ function getLocationData(filters = {}, level = 'country') {
 
   if (filters.start_date) {
     conditions.push('l.timestamp_unix >= @start_unix');
-    params.start_unix = Math.floor(new Date(filters.start_date + 'T00:00:00').getTime() / 1000);
+    const startDate = filters.start_date.includes('T') ? filters.start_date : filters.start_date + 'T00:00:00';
+    params.start_unix = Math.floor(new Date(startDate).getTime() / 1000);
   }
 
   if (filters.end_date) {
     conditions.push('l.timestamp_unix <= @end_unix');
-    params.end_unix = Math.floor(new Date(filters.end_date + 'T23:59:59').getTime() / 1000);
+    const endDate = filters.end_date.includes('T') ? filters.end_date : filters.end_date + 'T23:59:59';
+    params.end_unix = Math.floor(new Date(endDate).getTime() / 1000);
   }
 
   if (filters.country) {

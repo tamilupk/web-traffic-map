@@ -81,10 +81,15 @@
         <!-- Date Range Filter -->
         <div class="filter-group">
           <label class="filter-label">Date Range</label>
-          <div class="date-range">
-            <input type="date" id="filter-start-date" class="filter-input">
-            <span class="date-separator">to</span>
-            <input type="date" id="filter-end-date" class="filter-input">
+          <div class="date-range-stack">
+            <div class="date-input-group">
+              <label for="filter-start-date" class="date-input-label">Start</label>
+              <input type="datetime-local" id="filter-start-date" class="filter-input">
+            </div>
+            <div class="date-input-group">
+              <label for="filter-end-date" class="date-input-label">End</label>
+              <input type="datetime-local" id="filter-end-date" class="filter-input">
+            </div>
           </div>
         </div>
 

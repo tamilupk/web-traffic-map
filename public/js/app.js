@@ -28,11 +28,19 @@ async function initApp() {
 
   // Set default date range (today in local timezone)
   const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  document.getElementById('filter-start-date').value = today;
-  document.getElementById('filter-end-date').value = today;
-  AppState.filters.start_date = today;
-  AppState.filters.end_date = today;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  
+  // Format for datetime-local: YYYY-MM-DDTHH:mm
+  const startOfDay = `${year}-${month}-${day}T00:00`;
+  const endOfDay = `${year}-${month}-${day}T23:59`;
+  
+  document.getElementById('filter-start-date').value = startOfDay;
+  document.getElementById('filter-end-date').value = endOfDay;
+  
+  AppState.filters.start_date = startOfDay;
+  AppState.filters.end_date = endOfDay;
 
   // Initialize map
   initMap();
@@ -316,13 +324,18 @@ async function applyFilters() {
  */
 function resetFilters() {
   const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  
+  const startOfDay = `${year}-${month}-${day}T00:00`;
+  const endOfDay = `${year}-${month}-${day}T23:59`;
 
   AppState.filters = {
     host: '',
     device_type: '',
-    start_date: today,
-    end_date: today,
+    start_date: startOfDay,
+    end_date: endOfDay,
     ip: '',
     country: '',
     home_only: false
@@ -330,8 +343,8 @@ function resetFilters() {
 
   // Reset form elements
   document.getElementById('filter-domain').value = '';
-  document.getElementById('filter-start-date').value = today;
-  document.getElementById('filter-end-date').value = today;
+  document.getElementById('filter-start-date').value = startOfDay;
+  document.getElementById('filter-end-date').value = endOfDay;
   document.getElementById('filter-country').value = '';
   document.getElementById('filter-home-only').checked = false;
 
