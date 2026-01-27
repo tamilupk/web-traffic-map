@@ -16,7 +16,7 @@ let isRunning = false;
 
 /**
 
- * Perform a single scan of a 5-minute window
+ * Perform a single scan of a 1-hour window
 
  * @param {number} startTime - Unix timestamp
 
@@ -26,7 +26,7 @@ let isRunning = false;
 
 async function scanWindow(startTime) {
 
-  const windowSize = 5 * 60; // 5 minutes
+  const windowSize = 60 * 60; // 1 hour
 
   const endTime = startTime + windowSize;
 
@@ -118,19 +118,21 @@ async function startThreatWorker() {
 
     const now = Math.floor(Date.now() / 1000);
 
+    const windowSize = 60 * 60; // 1 hour
+
     
 
-    if (lastScan + 300 < now) {
+    if (lastScan + windowSize < now) {
 
-      const totalMinutes = Math.floor((now - lastScan) / 60);
+      const totalHours = Math.floor((now - lastScan) / 3600);
 
-      console.log(`\n🕒 Catch-up: Scaning logs from ${new Date(lastScan * 1000).toLocaleString()} (${totalMinutes} mins behind)`);
+      console.log(`\n🕒 Catch-up: Scaning logs from ${new Date(lastScan * 1000).toLocaleString()} (${totalHours} hours behind)`);
 
       
 
       let windowsProcessed = 0;
 
-      while (lastScan + 300 < now) {
+      while (lastScan + windowSize < now) {
 
         try {
 
@@ -146,7 +148,7 @@ async function startThreatWorker() {
 
           console.error(`\n❌ Error scanning window at ${lastScan}:`, err.message);
 
-          lastScan += 300;
+          lastScan += windowSize;
 
         }
 
@@ -156,7 +158,7 @@ async function startThreatWorker() {
 
       }
 
-      console.log(`✅ Catch-up complete. Processed ${windowsProcessed} windows.`);
+      console.log(`✅ Catch-up complete. Processed ${windowsProcessed} hours.`);
 
     } else {
 
