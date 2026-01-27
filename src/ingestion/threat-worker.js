@@ -44,13 +44,19 @@ async function scanWindow(startTime) {
 
   
 
-  if (groupedLogs.length > 0) {
+    if (groupedLogs.length > 0) {
 
-    process.stdout.write(`  ├─ Window ${new Date(startTime * 1000).toLocaleTimeString()}: Analyzing ${groupedLogs.length} groups... `);
+  
 
-    
+      process.stdout.write(`  ├─ Window ${new Date(startTime * 1000).toLocaleString()}: Analyzing ${groupedLogs.length} groups... `);
 
-    let threatsFound = 0;
+  
+
+      
+
+  
+
+      let threatsFound = 0;
 
     // Process IPs sequentially to respect LLM rate limits
 
