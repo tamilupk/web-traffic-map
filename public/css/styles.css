@@ -160,6 +160,24 @@ html, body {
   font-weight: 500;
 }
 
+.threat-link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+  text-decoration: none;
+  transition: var(--md-transition-fast);
+}
+
+.threat-link:hover {
+  background: white;
+  color: var(--md-primary);
+}
+
 /* Stats Card */
 .stats-card {
   display: flex;

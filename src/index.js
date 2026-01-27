@@ -16,6 +16,7 @@ const { initDatabase, closeDatabase } = require('./db/schema');
 const { createApiRoutes } = require('./api/routes');
 const { startWatcher, stopWatcher } = require('./ingestion/watcher');
 const { processUngelocatedIps } = require('./geo/lookup');
+const { startThreatWorker } = require('./ingestion/threat-worker');
 
 /**
  * Create and configure the Hono application
@@ -33,6 +34,9 @@ function createApp() {
 
   // Health check
   app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+
+  // Page routes
+  app.get('/threat-analysis', serveStatic({ path: './public/threats.html' }));
 
   // Serve static files from public directory
   app.use('/*', serveStatic({ root: './public' }));
@@ -55,6 +59,9 @@ async function main() {
   console.log('\nInitializing database...');
   initDatabase();
   console.log(`Database: ${config.dbPath}`);
+
+  // Start threat worker
+  startThreatWorker();
 
   // Start file watcher
   console.log('\nStarting log file watcher...');

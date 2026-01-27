@@ -447,6 +447,116 @@ function getIpsNeedingGeo(limit = 100) {
   `).all(limit).map(row => row.client_ip);
 }
 
+/**
+ * Get the last scanned timestamp for threat analysis
+ * @returns {number} Unix timestamp
+ */
+function getLastThreatScanTime() {
+  const db = getDatabase();
+  const result = db.prepare("SELECT value FROM app_state WHERE key = 'last_threat_scan_time'").get();
+  if (result) return parseInt(result.value, 10);
+  
+  // If never scanned, get the timestamp of the oldest log
+  const firstLog = db.prepare("SELECT MIN(timestamp_unix) as min_time FROM logs").get();
+  return firstLog && firstLog.min_time ? firstLog.min_time : Math.floor(Date.now() / 1000);
+}
+
+/**
+ * Set the last scanned timestamp
+ * @param {number} timestamp - Unix timestamp
+ */
+function setLastThreatScanTime(timestamp) {
+  const db = getDatabase();
+  db.prepare(`
+    INSERT INTO app_state (key, value, updated_at)
+    VALUES ('last_threat_scan_time', ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET
+      value = excluded.value,
+      updated_at = CURRENT_TIMESTAMP
+  `).run(timestamp.toString());
+}
+
+/**
+ * Get logs in a specific time range grouped by IP
+ * @param {number} startTime - Unix timestamp
+ * @param {number} endTime - Unix timestamp
+ * @returns {Array<Object>} Logs grouped by IP
+ */
+function getLogsForAnalysis(startTime, endTime) {
+  const db = getDatabase();
+  const rows = db.prepare(`
+    SELECT client_ip, path, method, status, user_agent, timestamp
+    FROM logs
+    WHERE timestamp_unix >= ? AND timestamp_unix < ?
+    ORDER BY timestamp_unix ASC
+  `).all(startTime, endTime);
+
+  // Group by IP
+  const grouped = {};
+  rows.forEach(row => {
+    if (!grouped[row.client_ip]) {
+      grouped[row.client_ip] = {
+        ip: row.client_ip,
+        requests: []
+      };
+    }
+    grouped[row.client_ip].requests.push({
+      path: row.path,
+      method: row.method,
+      status: row.status,
+      ua: row.user_agent,
+      time: row.timestamp
+    });
+  });
+
+  return Object.values(grouped);
+}
+
+/**
+ * Save a threat incident
+ * @param {Object} incident - Incident details
+ */
+function saveThreatIncident(incident) {
+  const db = getDatabase();
+  db.prepare(`
+    INSERT INTO threat_incidents (
+      ip, incident_date, incident_unix, risk_score, 
+      threat_level, summary, details, request_count
+    ) VALUES (
+      @ip, @incident_date, @incident_unix, @risk_score, 
+      @threat_level, @summary, @details, @request_count
+    )
+  `).run({
+    ...incident,
+    details: JSON.stringify(incident.findings)
+  });
+}
+
+/**
+ * Get threat timeline
+ * @param {number} limit - Max results
+ * @returns {Array<Object>} Timeline of incidents
+ */
+function getThreatTimeline(limit = 100) {
+  const db = getDatabase();
+  return db.prepare(`
+    SELECT t.*, g.country, g.country_flag, g.isp
+    FROM threat_incidents t
+    LEFT JOIN geo_cache g ON t.ip = g.ip
+    ORDER BY t.incident_unix DESC
+    LIMIT ?
+  `).all(limit);
+}
+
+/**
+ * Clear all threat incidents and reset scan time
+ */
+function resetThreatAnalysis() {
+  const db = getDatabase();
+  db.prepare("DELETE FROM threat_incidents").run();
+  db.prepare("DELETE FROM app_state WHERE key = 'last_threat_scan_time'").run();
+}
+
 module.exports = {
   insertLog,
   insertLogs,
@@ -459,5 +569,11 @@ module.exports = {
   setFilePosition,
   getGeoCache,
   setGeoCache,
-  getIpsNeedingGeo
+  getIpsNeedingGeo,
+  getLastThreatScanTime,
+  setLastThreatScanTime,
+  getLogsForAnalysis,
+  saveThreatIncident,
+  getThreatTimeline,
+  resetThreatAnalysis
 };

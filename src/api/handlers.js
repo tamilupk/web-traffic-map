@@ -9,10 +9,47 @@ const {
   getStats,
   getLocationData,
   getDomains,
-  getCountries
+  getCountries,
+  getThreatTimeline,
+  resetThreatAnalysis
 } = require('../db/queries');
 const { getWatcherStatus } = require('../ingestion/watcher');
 const { getQueueStatus, processUngelocatedIps } = require('../geo/lookup');
+
+/**
+ * Handle GET /api/threats
+ * Returns timeline of identified threats
+ */
+function handleGetThreats(c) {
+  try {
+    const timeline = getThreatTimeline(100);
+    return c.json({
+      success: true,
+      data: timeline
+    });
+  } catch (error) {
+    console.error('Error getting threats:', error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+}
+
+/**
+ * Handle POST /api/threats/rescan
+ * Resets threat analysis and triggers full scan
+ */
+async function handleRescanThreats(c) {
+  try {
+    resetThreatAnalysis();
+    // The worker will automatically catch up on its next run or we could trigger it
+    return c.json({
+      success: true,
+      message: 'Threat analysis reset. Worker will begin full rescan.'
+    });
+  } catch (error) {
+    console.error('Error resetting threats:', error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+}
 
 /**
  * Handle GET /api/logs

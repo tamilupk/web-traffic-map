@@ -12,7 +12,9 @@ const {
   handleGetDomains,
   handleGetCountries,
   handleGetStatus,
-  handleProcessGeo
+  handleProcessGeo,
+  handleGetThreats,
+  handleRescanThreats
 } = require('./handlers');
 
 /**
@@ -30,6 +32,10 @@ function createApiRoutes() {
 
   // Location data for map
   api.get('/locations', handleGetLocations);
+
+  // Threat analysis
+  api.get('/threats', handleGetThreats);
+  api.post('/threats/rescan', handleRescanThreats);
 
   // Filter options
   api.get('/domains', handleGetDomains);

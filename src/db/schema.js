@@ -71,20 +71,28 @@ function createTables() {
     )
   `);
 
-  // Geo cache for IP lookups
+  // Threat incidents table
   db.exec(`
-    CREATE TABLE IF NOT EXISTS geo_cache (
-      ip TEXT PRIMARY KEY,
-      country TEXT,
-      country_code TEXT,
-      region TEXT,
-      city TEXT,
-      latitude REAL,
-      longitude REAL,
-      isp TEXT,
-      timezone TEXT,
-      country_flag TEXT,
-      cached_at TEXT DEFAULT CURRENT_TIMESTAMP
+    CREATE TABLE IF NOT EXISTS threat_incidents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ip TEXT NOT NULL,
+      incident_date TEXT NOT NULL,
+      incident_unix INTEGER NOT NULL,
+      risk_score INTEGER DEFAULT 0,
+      threat_level TEXT DEFAULT 'low',
+      summary TEXT,
+      details TEXT, -- JSON array of findings
+      request_count INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // App state for tracking scans
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_state (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
 }
@@ -101,6 +109,8 @@ function createIndexes() {
     CREATE INDEX IF NOT EXISTS idx_logs_path ON logs(path);
     CREATE INDEX IF NOT EXISTS idx_logs_status ON logs(status);
     CREATE INDEX IF NOT EXISTS idx_geo_cache_country ON geo_cache(country_code);
+    CREATE INDEX IF NOT EXISTS idx_threat_incidents_unix ON threat_incidents(incident_unix);
+    CREATE INDEX IF NOT EXISTS idx_threat_incidents_ip ON threat_incidents(ip);
   `);
 }
 
