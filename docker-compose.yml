@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   web-traffic-map:
-    build: .
+    image: tamilupk/web-traffic-map:latest
     container_name: web-traffic-map
     restart: unless-stopped
     ports:
