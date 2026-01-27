@@ -14,6 +14,10 @@ const { analyzeIpBehavior } = require('../geo/threat');
 
 let isRunning = false;
 
+let isCatchingUp = false;
+
+
+
 /**
 
  * Perform a single scan of a 1-hour window
@@ -90,6 +94,80 @@ async function scanWindow(startTime) {
 
 /**
 
+ * Immediate catch-up loop
+
+ */
+
+const catchUp = async () => {
+
+  if (isCatchingUp) return;
+
+  isCatchingUp = true;
+
+
+
+  let lastScan = getLastThreatScanTime();
+
+  const now = Math.floor(Date.now() / 1000);
+
+  const windowSize = 60 * 60; // 1 hour
+
+  
+
+  if (lastScan + windowSize < now) {
+
+    const totalHours = Math.floor((now - lastScan) / 3600);
+
+    console.log(`\n🕒 Catch-up: Scaning logs from ${new Date(lastScan * 1000).toLocaleString()} (${totalHours} hours behind)`);
+
+    
+
+    let windowsProcessed = 0;
+
+    while (lastScan + windowSize < now) {
+
+      try {
+
+        const nextTime = await scanWindow(lastScan);
+
+        if (nextTime === lastScan) break; 
+
+        lastScan = nextTime;
+
+        windowsProcessed++;
+
+      } catch (err) {
+
+        console.error(`\n❌ Error scanning window at ${lastScan}:`, err.message);
+
+        lastScan += windowSize;
+
+      }
+
+      // Small pause to prevent CPU pegging
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+    }
+
+    console.log(`✅ Catch-up complete. Processed ${windowsProcessed} hours.`);
+
+  } else {
+
+    console.log('✨ Threat scan is up to date.');
+
+  }
+
+  
+
+  isCatchingUp = false;
+
+};
+
+
+
+/**
+
  * Run the worker loop
 
  */
@@ -107,66 +185,6 @@ async function startThreatWorker() {
   console.log('🛡️  Threat Analyzer Worker Started');
 
   console.log('='.repeat(50));
-
-
-
-  // Immediate catch-up loop
-
-  const catchUp = async () => {
-
-    let lastScan = getLastThreatScanTime();
-
-    const now = Math.floor(Date.now() / 1000);
-
-    const windowSize = 60 * 60; // 1 hour
-
-    
-
-    if (lastScan + windowSize < now) {
-
-      const totalHours = Math.floor((now - lastScan) / 3600);
-
-      console.log(`\n🕒 Catch-up: Scaning logs from ${new Date(lastScan * 1000).toLocaleString()} (${totalHours} hours behind)`);
-
-      
-
-      let windowsProcessed = 0;
-
-      while (lastScan + windowSize < now) {
-
-        try {
-
-          const nextTime = await scanWindow(lastScan);
-
-          if (nextTime === lastScan) break; 
-
-          lastScan = nextTime;
-
-          windowsProcessed++;
-
-        } catch (err) {
-
-          console.error(`\n❌ Error scanning window at ${lastScan}:`, err.message);
-
-          lastScan += windowSize;
-
-        }
-
-        // Small pause to prevent CPU pegging
-
-        await new Promise(resolve => setTimeout(resolve, 50));
-
-      }
-
-      console.log(`✅ Catch-up complete. Processed ${windowsProcessed} hours.`);
-
-    } else {
-
-      console.log('✨ Threat scan is up to date.');
-
-    }
-
-  };
 
 
 
@@ -188,4 +206,6 @@ async function startThreatWorker() {
 
 }
 
-module.exports = { startThreatWorker, resetThreatAnalysis };
+
+
+module.exports = { startThreatWorker, resetThreatAnalysis, triggerThreatScan: catchUp };

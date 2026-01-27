@@ -557,6 +557,8 @@ function resetThreatAnalysis() {
   const db = getDatabase();
   db.prepare("DELETE FROM threat_incidents").run();
   db.prepare("DELETE FROM app_state WHERE key = 'last_threat_scan_time'").run();
+  // Optional: if the user wants a REALLY full rescan including re-reading files from disk
+  // db.prepare("UPDATE file_positions SET byte_offset = 0").run();
 }
 
 module.exports = {

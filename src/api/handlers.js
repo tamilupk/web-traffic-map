@@ -15,6 +15,7 @@ const {
 } = require('../db/queries');
 const { getWatcherStatus } = require('../ingestion/watcher');
 const { getQueueStatus, processUngelocatedIps } = require('../geo/lookup');
+const { triggerThreatScan } = require('../ingestion/threat-worker');
 
 /**
  * Handle GET /api/threats
@@ -40,10 +41,12 @@ function handleGetThreats(c) {
 async function handleRescanThreats(c) {
   try {
     resetThreatAnalysis();
-    // The worker will automatically catch up on its next run or we could trigger it
+    // Trigger the worker catch-up immediately
+    triggerThreatScan();
+    
     return c.json({
       success: true,
-      message: 'Threat analysis reset. Worker will begin full rescan.'
+      message: 'Threat analysis reset. Worker has begun full rescan.'
     });
   } catch (error) {
     console.error('Error resetting threats:', error);
