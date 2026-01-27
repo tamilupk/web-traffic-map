@@ -17,7 +17,8 @@ const AppState = {
   stats: null,
   locations: [],
   domains: [],
-  countries: []
+  countries: [],
+  lastLogId: null
 };
 
 /**
@@ -58,6 +59,9 @@ async function initApp() {
   document.getElementById('refresh-data').addEventListener('click', () => {
     applyFilters();
   });
+
+  // Start live polling for new hits
+  startLivePolling();
 
   // Load initial data
   showLoading(true);
@@ -357,6 +361,82 @@ function resetFilters() {
 }
 
 /**
+ * Show a snackbar notification for a new hit
+ * @param {Object} hit - Log entry details
+ */
+function showSnackbar(hit) {
+  const container = document.getElementById('snackbar-container');
+  if (!container) return;
+
+  const snackbar = document.createElement('div');
+  snackbar.className = 'snackbar';
+  
+  const location = hit.city && hit.country ? `${hit.city}, ${hit.country}` : (hit.country || 'Unknown Location');
+  const deviceIcon = getDeviceIcon(hit.device_type);
+
+  snackbar.innerHTML = `
+    <div class="snackbar-header">
+      <span class="snackbar-title">New Visitor</span>
+    </div>
+    <div class="snackbar-content">
+      <div class="snackbar-item">
+        <span class="snackbar-label">IP Address</span>
+        <span class="snackbar-value">${hit.client_ip}</span>
+      </div>
+      <div class="snackbar-item">
+        <span class="snackbar-label">Location</span>
+        <span class="snackbar-value">${location}</span>
+      </div>
+      <div class="snackbar-item">
+        <span class="snackbar-label">Device</span>
+        <span class="snackbar-value">${hit.device_type || 'unknown'}</span>
+      </div>
+      <div class="snackbar-item">
+        <span class="snackbar-label">ISP</span>
+        <span class="snackbar-value" title="${hit.isp || 'unknown'}">${hit.isp || 'unknown'}</span>
+      </div>
+    </div>
+    <div class="snackbar-progress" id="progress-${Date.now()}"></div>
+  `;
+
+  container.appendChild(snackbar);
+
+  // Auto-close after 5 seconds
+  const timeout = 5000;
+  const progressBar = snackbar.querySelector('.snackbar-progress');
+  
+  if (progressBar) {
+    progressBar.animate([
+      { transform: 'scaleX(1)' },
+      { transform: 'scaleX(0)' }
+    ], {
+      duration: timeout,
+      easing: 'linear'
+    });
+  }
+
+  setTimeout(() => {
+    snackbar.classList.add('hiding');
+    setTimeout(() => {
+      snackbar.remove();
+    }, 300);
+  }, timeout);
+}
+
+/**
+ * Get simple device icon/text
+ */
+function getDeviceIcon(type) {
+  switch (type) {
+    case 'mobile': return '📱';
+    case 'desktop': return '💻';
+    case 'tablet': return '📟';
+    case 'bot': return '🤖';
+    default: return '❓';
+  }
+}
+
+/**
  * Show/hide loading overlay
  * @param {boolean} show - Whether to show loading
  */
@@ -373,6 +453,59 @@ function showLoading(show) {
 function formatNumber(num) {
   if (num === null || num === undefined) return '--';
   return num.toLocaleString();
+}
+
+/**
+ * Start polling for new hits to show snackbars
+ */
+async function startLivePolling() {
+  // Initial fetch to get the current latest ID
+  try {
+    const result = await fetchAPI('logs', { limit: 1 });
+    if (result.success && result.data.length > 0) {
+      AppState.lastLogId = result.data[0].id;
+    }
+  } catch (error) {
+    console.error('Error initializing live polling:', error);
+  }
+
+  // Poll every 10 seconds for new hits
+  setInterval(async () => {
+    try {
+      // Fetch the latest hits
+      const result = await fetchAPI('logs', { limit: 5 });
+      if (result.success && result.data.length > 0) {
+        const newHits = [];
+        
+        // If we don't have a lastLogId yet, just set it
+        if (AppState.lastLogId === null) {
+          AppState.lastLogId = result.data[0].id;
+          return;
+        }
+
+        // Find all hits newer than our last seen ID
+        for (const hit of result.data) {
+          if (hit.id > AppState.lastLogId) {
+            newHits.push(hit);
+          } else {
+            break;
+          }
+        }
+
+        // Show snackbars for new hits (newest first, so we reverse to show in order)
+        newHits.reverse().forEach(hit => {
+          showSnackbar(hit);
+        });
+
+        // Update last seen ID
+        if (result.data.length > 0) {
+          AppState.lastLogId = result.data[0].id;
+        }
+      }
+    } catch (error) {
+      console.error('Error polling for new hits:', error);
+    }
+  }, 10000);
 }
 
 /**

@@ -1381,6 +1381,118 @@ input[type="datetime-local"].filter-input {
   background: var(--md-outline);
 }
 
+/* Snackbar Notifications */
+.snackbar-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 5000;
+  pointer-events: none;
+}
+
+.snackbar {
+  min-width: 300px;
+  max-width: 400px;
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(8px);
+  color: white;
+  padding: 16px;
+  border-radius: var(--md-radius-lg);
+  box-shadow: var(--md-shadow-4);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+  animation: snackbar-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.snackbar.hiding {
+  animation: snackbar-out 0.3s forwards;
+}
+
+@keyframes snackbar-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes snackbar-out {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+.snackbar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+}
+
+.snackbar-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--md-primary-container);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.snackbar-title::before {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  background: #10B981; /* Success Green */
+  border-radius: 50%;
+  box-shadow: 0 0 8px #10B981;
+}
+
+.snackbar-content {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.snackbar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.snackbar-label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.snackbar-value {
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.snackbar-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: var(--md-primary);
+  width: 100%;
+  transform-origin: left;
+}
+
 /* Filter loading indicator */
 .filter-loading {
   position: relative;
