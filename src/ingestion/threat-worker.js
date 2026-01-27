@@ -44,29 +44,35 @@ async function scanWindow(startTime) {
 
   
 
-    if (groupedLogs.length > 0) {
+  if (groupedLogs.length > 0) {
 
-  
+    process.stdout.write(`  ├─ Window ${new Date(startTime * 1000).toLocaleString()}: Analyzing ${groupedLogs.length} groups... `);
 
-      process.stdout.write(`  ├─ Window ${new Date(startTime * 1000).toLocaleString()}: Analyzing ${groupedLogs.length} groups... `);
+    
 
-  
+    let threatsFound = 0;
 
-      
+    const concurrencyLimit = 5;
 
-  
+    
 
-      let threatsFound = 0;
+    // Process in batches to avoid overwhelming LLM rate limits
 
-    // Process IPs sequentially to respect LLM rate limits
+    for (let i = 0; i < groupedLogs.length; i += concurrencyLimit) {
 
-    for (const group of groupedLogs) {
+      const batch = groupedLogs.slice(i, i + concurrencyLimit);
 
-      const isThreat = await analyzeIpBehavior(group.ip, group.requests, startTime, group.host);
+      const results = await Promise.all(batch.map(group => 
 
-      if (isThreat) threatsFound++;
+        analyzeIpBehavior(group.ip, group.requests, startTime, group.host)
+
+      ));
+
+      threatsFound += results.filter(Boolean).length;
 
     }
+
+    
 
     console.log(`done (${threatsFound} threats)`);
 
