@@ -48,6 +48,7 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
       "risk_score": (integer 0-100, where 0 is safe and 100 is critical threat),
       "threat_level": (string: "low", "medium", "high", or "critical"),
       "summary": (string: concise summary of findings),
+      "explanation": (string: a detailed explanation of why this behavior is considered a threat and what the potential impact could be),
       "findings": (array of strings: specific suspicious activities found)
     }
   `;
@@ -102,6 +103,7 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
         risk_score: content.risk_score,
         threat_level: content.threat_level,
         summary: content.summary,
+        explanation: content.explanation || content.summary,
         findings: content.findings,
         request_count: requests.length
       });
@@ -142,6 +144,9 @@ function runHeuristicAnalysis(ip, requests, timestamp, host) {
   if (score >= 15) {
     const level = score > 80 ? 'critical' : (score > 50 ? 'high' : (score > 25 ? 'medium' : 'low'));
     console.log(`\n    🔍 [Heuristic] Pattern Match: ${ip} -> ${host} (Score: ${score})`);
+    
+    const explanation = `This IP triggered a heuristic match by attempting to access ${findings.length} sensitive system files or configuration templates. This behavior is highly characteristic of automated vulnerability scanning tools looking for misconfigured servers or exposed secrets.`;
+
     saveThreatIncident({
       ip,
       host,
@@ -150,6 +155,7 @@ function runHeuristicAnalysis(ip, requests, timestamp, host) {
       risk_score: Math.min(score, 100),
       threat_level: level,
       summary: `Pattern Match: ${findings.length} suspicious request(s) detected.`,
+      explanation,
       findings,
       request_count: requests.length
     });

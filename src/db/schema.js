@@ -82,6 +82,7 @@ function createTables() {
       risk_score INTEGER DEFAULT 0,
       threat_level TEXT DEFAULT 'low',
       summary TEXT,
+      explanation TEXT,
       details TEXT, -- JSON array of findings
       request_count INTEGER DEFAULT 0,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP

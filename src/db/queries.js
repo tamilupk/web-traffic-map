@@ -523,10 +523,10 @@ function saveThreatIncident(incident) {
   db.prepare(`
     INSERT INTO threat_incidents (
       ip, host, incident_date, incident_unix, risk_score, 
-      threat_level, summary, details, request_count
+      threat_level, summary, explanation, details, request_count
     ) VALUES (
       @ip, @host, @incident_date, @incident_unix, @risk_score, 
-      @threat_level, @summary, @details, @request_count
+      @threat_level, @summary, @explanation, @details, @request_count
     )
   `).run({
     ...incident,

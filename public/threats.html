@@ -158,6 +158,20 @@
       border: 1px solid var(--md-surface-dim);
     }
 
+    .threat-explanation {
+      margin-top: 20px;
+      padding: 16px;
+      background: var(--md-surface-container-low);
+      border-radius: var(--md-radius-md);
+      border-left: 4px solid var(--md-primary);
+      font-size: 14px;
+      color: var(--md-on-surface);
+      line-height: 1.6;
+      font-style: italic;
+    }
+
+    .level-critical .threat-explanation { border-left-color: var(--md-error); }
+
     .threat-footer {
       margin-top: 16px;
       padding-top: 16px;
@@ -269,6 +283,10 @@
                 <div style="width: 100%; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--md-on-surface-variant); margin-bottom: 8px;">Identified Patterns:</div>
                 ${findings.map(f => `<div class="finding-chip">${f}</div>`).join('')}
               </div>
+              ${incident.explanation ? `<div class="threat-explanation">
+                <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; color: var(--md-primary); letter-spacing: 0.5px;">AI Analysis:</div>
+                ${incident.explanation}
+              </div>` : ''}
               <div class="threat-footer">
                 <div class="footer-item">
                   <strong>ISP:</strong> ${incident.isp || 'Unknown'}
