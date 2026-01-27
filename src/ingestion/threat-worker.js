@@ -30,8 +30,6 @@ async function scanWindow(startTime) {
   const groupedLogs = getLogsForAnalysis(startTime, endTime);
   
   if (groupedLogs.length > 0) {
-    console.log(`[ThreatWorker] Analyzing ${groupedLogs.length} IPs in window ${new Date(startTime * 1000).toLocaleString()}`);
-    
     // Process IPs sequentially to respect LLM rate limits
     for (const group of groupedLogs) {
       await analyzeIpBehavior(group.ip, group.requests, startTime);
@@ -58,9 +56,14 @@ async function startThreatWorker() {
     
     // If we are more than 5 mins behind, catch up
     while (lastScan + 300 < now) {
-      const nextTime = await scanWindow(lastScan);
-      if (nextTime === lastScan) break; // Reached current time
-      lastScan = nextTime;
+      try {
+        const nextTime = await scanWindow(lastScan);
+        if (nextTime === lastScan) break; 
+        lastScan = nextTime;
+      } catch (err) {
+        console.error(`[ThreatWorker] Error scanning window at ${lastScan}:`, err);
+        lastScan += 300;
+      }
       // Small pause to prevent CPU pegging
       await new Promise(resolve => setTimeout(resolve, 100));
     }

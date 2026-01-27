@@ -4,7 +4,11 @@
  * @module geo/threat
  */
 
+const { GoogleGenAI } = require('@google/genai');
 const { saveThreatIncident } = require('../db/queries');
+
+// Initialize AI outside the handler to reuse connection
+let genAI = null;
 
 /**
  * Call Gemini API to analyze a batch of logs for a specific IP
@@ -17,6 +21,11 @@ async function analyzeIpBehavior(ip, requests, timestamp) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return runHeuristicAnalysis(ip, requests, timestamp);
+  }
+
+  // Initialize SDK if not already done
+  if (!genAI) {
+    genAI = new GoogleGenAI({ apiKey });
   }
 
   const prompt = `
@@ -43,20 +52,43 @@ async function analyzeIpBehavior(ip, requests, timestamp) {
   `;
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { response_mime_type: "application/json" }
-      })
+    const config = {
+      thinkingConfig: {
+        thinkingLevel: 'HIGH',
+      },
+    };
+    
+    const model = 'gemini-3-flash-preview';
+    const contents = [
+      {
+        role: 'user',
+        parts: [{ text: prompt }],
+      },
+    ];
+
+    const response = await genAI.models.generateContentStream({
+      model,
+      config,
+      contents,
     });
 
-    if (!response.ok) throw new Error(`API error: ${response.status}`);
+    let fullText = '';
+    for await (const chunk of response) {
+      if (chunk.text) {
+        fullText += chunk.text;
+      }
+    }
 
-    const data = await response.json();
-    const content = JSON.parse(data.candidates[0].content.parts[0].text);
+    let content;
+    try {
+      // Handle cases where the model wraps JSON in markdown blocks
+      const jsonMatch = fullText.match(/\{[\s\S]*\}/);
+      const cleanText = jsonMatch ? jsonMatch[0] : fullText;
+      content = JSON.parse(cleanText);
+    } catch (parseError) {
+      console.error(`LLM Parse error for ${ip}:`, parseError.message);
+      return runHeuristicAnalysis(ip, requests, timestamp);
+    }
 
     if (content.threat_found) {
       saveThreatIncident({
@@ -86,8 +118,9 @@ function runHeuristicAnalysis(ip, requests, timestamp) {
   const findings = [];
   
   const sensitivePaths = [
-    '.env', '.git', 'config.php', '.php', '.sql', '.sh', '.bak', 
-    'admin', 'backup', 'passwd', 'etc/', 'win.ini', 'eval(', 'base64_'
+    '.env', '.git', 'config.php', 'config', '.php', '.sql', '.sh', '.bak', 
+    'admin', 'backup', 'passwd', 'etc/', 'win.ini', 'eval(', 'base64_',
+    'example', 'sample', 'install', 'uninstall', 'remove', 'deploy', 'init'
   ];
 
   requests.forEach(req => {
@@ -102,15 +135,15 @@ function runHeuristicAnalysis(ip, requests, timestamp) {
     if (req.status >= 400) score += 2;
   });
 
-  if (score > 30) {
-    const level = score > 80 ? 'critical' : (score > 50 ? 'high' : 'medium');
+  if (score >= 15) {
+    const level = score > 80 ? 'critical' : (score > 50 ? 'high' : (score > 25 ? 'medium' : 'low'));
     saveThreatIncident({
       ip,
       incident_date: new Date(timestamp * 1000).toISOString(),
       incident_unix: timestamp,
       risk_score: Math.min(score, 100),
       threat_level: level,
-      summary: `Heuristic match: ${findings.length} suspicious patterns detected.`,
+      summary: `Pattern Match: ${findings.length} suspicious request(s) detected.`,
       findings,
       request_count: requests.length
     });
