@@ -27,6 +27,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY package*.json ./
 COPY src ./src
 COPY public ./public
+COPY scripts ./scripts
 
 # Rebuild better-sqlite3 for Alpine
 RUN npm rebuild better-sqlite3
@@ -45,7 +46,7 @@ EXPOSE 30045
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://127.0.0.1:30045/api/status || exit 1
+  CMD curl -f http://127.0.0.1:30045/health || exit 1
 
 # Start the application
 CMD ["node", "src/index.js"]

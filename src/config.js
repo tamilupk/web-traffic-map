@@ -29,6 +29,21 @@ const config = {
   /** Rate limit delay between geo API calls (ms) */
   geoRateLimit: 100,
 
+  /** WebAuthn Relying Party ID (domain, no port, no protocol) */
+  rpId: process.env.RP_ID || 'localhost',
+
+  /** WebAuthn Relying Party Name */
+  rpName: process.env.RP_NAME || 'Web Traffic Map',
+
+  /** WebAuthn expected origin (full origin with protocol and port) */
+  webauthnOrigin: process.env.WEBAUTHN_ORIGIN || `http://localhost:${parseInt(process.env.PORT, 10) || 3000}`,
+
+  /** JWT secret (if not set, auto-generated and stored in DB) */
+  jwtSecret: process.env.JWT_SECRET || null,
+
+  /** JWT expiration time */
+  jwtExpiry: process.env.JWT_EXPIRY || '7d',
+
   /** Private IP ranges to skip geolocation */
   privateIpRanges: [
     /^10\./,

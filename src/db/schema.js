@@ -54,6 +54,13 @@ function runMigrations() {
     console.log('Migrating database: adding host column to threat_incidents');
     db.exec("ALTER TABLE threat_incidents ADD COLUMN host TEXT");
   }
+
+  // Check if is_admin column exists in users
+  const usersInfo = db.prepare("PRAGMA table_info(users)").all();
+  if (usersInfo.length > 0 && !usersInfo.some(col => col.name === 'is_admin')) {
+    console.log('Migrating database: adding is_admin column to users');
+    db.exec("ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0");
+  }
 }
 
 /**
@@ -118,6 +125,55 @@ function createTables() {
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Users table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      display_name TEXT,
+      is_admin INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Passkey credentials (one user can have many passkeys)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS passkey_credentials (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      credential_id TEXT NOT NULL UNIQUE,
+      public_key TEXT NOT NULL,
+      counter INTEGER NOT NULL DEFAULT 0,
+      transports TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Invite tokens for registration
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS invite_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Ephemeral WebAuthn challenges
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS webauthn_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      challenge TEXT NOT NULL UNIQUE,
+      user_id INTEGER,
+      type TEXT NOT NULL CHECK(type IN ('registration', 'authentication')),
+      expires_at TEXT NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 }
 
 /**
@@ -134,6 +190,11 @@ function createIndexes() {
     CREATE INDEX IF NOT EXISTS idx_geo_cache_country ON geo_cache(country_code);
     CREATE INDEX IF NOT EXISTS idx_threat_incidents_unix ON threat_incidents(incident_unix);
     CREATE INDEX IF NOT EXISTS idx_threat_incidents_ip ON threat_incidents(ip);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_passkey_credentials_user_id ON passkey_credentials(user_id);
+    CREATE INDEX IF NOT EXISTS idx_passkey_credentials_credential_id ON passkey_credentials(credential_id);
+    CREATE INDEX IF NOT EXISTS idx_invite_tokens_token ON invite_tokens(token);
+    CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_challenge ON webauthn_challenges(challenge);
   `);
 }
 

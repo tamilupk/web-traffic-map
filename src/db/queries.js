@@ -561,6 +561,186 @@ function resetThreatAnalysis() {
   // db.prepare("UPDATE file_positions SET byte_offset = 0").run();
 }
 
+// ========== Auth Queries ==========
+
+/**
+ * Create a user record
+ * @param {string} email
+ * @param {string} displayName
+ * @returns {Object} The created user with id
+ */
+function createUser(email, displayName) {
+  const db = getDatabase();
+  const result = db.prepare(
+    'INSERT INTO users (email, display_name) VALUES (?, ?)'
+  ).run(email, displayName);
+  return { id: result.lastInsertRowid, email, display_name: displayName };
+}
+
+/**
+ * Get user by ID
+ * @param {number} id
+ * @returns {Object|undefined}
+ */
+function getUserById(id) {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+}
+
+/**
+ * Get user by email
+ * @param {string} email
+ * @returns {Object|undefined}
+ */
+function getUserByEmail(email) {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+}
+
+/**
+ * Promote a user to admin
+ * @param {string} email
+ * @returns {boolean} True if user was found and promoted
+ */
+function promoteToAdmin(email) {
+  const db = getDatabase();
+  const result = db.prepare('UPDATE users SET is_admin = 1 WHERE email = ?').run(email);
+  return result.changes > 0;
+}
+
+/**
+ * Save a passkey credential for a user
+ * @param {Object} credential
+ */
+function savePasskeyCredential(credential) {
+  const db = getDatabase();
+  db.prepare(`
+    INSERT INTO passkey_credentials (user_id, credential_id, public_key, counter, transports)
+    VALUES (@user_id, @credential_id, @public_key, @counter, @transports)
+  `).run({
+    user_id: credential.user_id,
+    credential_id: credential.credential_id,
+    public_key: credential.public_key,
+    counter: credential.counter,
+    transports: JSON.stringify(credential.transports || [])
+  });
+}
+
+/**
+ * Get all passkey credentials for a user
+ * @param {number} userId
+ * @returns {Array<Object>}
+ */
+function getPasskeyCredentialsByUserId(userId) {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM passkey_credentials WHERE user_id = ?').all(userId);
+}
+
+/**
+ * Get a passkey credential by credential_id
+ * @param {string} credentialId - base64url-encoded credential ID
+ * @returns {Object|undefined}
+ */
+function getPasskeyCredentialById(credentialId) {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM passkey_credentials WHERE credential_id = ?').get(credentialId);
+}
+
+/**
+ * Update the counter on a credential after successful authentication
+ * @param {string} credentialId
+ * @param {number} newCounter
+ */
+function updateCredentialCounter(credentialId, newCounter) {
+  const db = getDatabase();
+  db.prepare('UPDATE passkey_credentials SET counter = ? WHERE credential_id = ?').run(newCounter, credentialId);
+}
+
+/**
+ * Create an invite token
+ * @param {string} email
+ * @param {string} token - UUID
+ * @param {string} expiresAt - ISO date string
+ */
+function createInviteToken(email, token, expiresAt) {
+  const db = getDatabase();
+  db.prepare(
+    'INSERT INTO invite_tokens (email, token, expires_at) VALUES (?, ?, ?)'
+  ).run(email, token, expiresAt);
+}
+
+/**
+ * Get an invite token record
+ * @param {string} token
+ * @returns {Object|undefined}
+ */
+function getInviteToken(token) {
+  const db = getDatabase();
+  return db.prepare('SELECT * FROM invite_tokens WHERE token = ?').get(token);
+}
+
+/**
+ * Mark an invite token as used
+ * @param {string} token
+ */
+function markInviteTokenUsed(token) {
+  const db = getDatabase();
+  db.prepare('UPDATE invite_tokens SET used = 1 WHERE token = ?').run(token);
+}
+
+/**
+ * Store a WebAuthn challenge
+ * @param {string} challenge
+ * @param {number|null} userId
+ * @param {string} type - 'registration' or 'authentication'
+ * @param {string} expiresAt - ISO date string
+ */
+function storeChallenge(challenge, userId, type, expiresAt) {
+  const db = getDatabase();
+  db.prepare(
+    'INSERT INTO webauthn_challenges (challenge, user_id, type, expires_at) VALUES (?, ?, ?, ?)'
+  ).run(challenge, userId, type, expiresAt);
+}
+
+/**
+ * Get and remove a challenge (one-time use)
+ * @param {string} challenge
+ * @returns {Object|undefined}
+ */
+function consumeChallenge(challenge) {
+  const db = getDatabase();
+  const row = db.prepare('SELECT * FROM webauthn_challenges WHERE challenge = ?').get(challenge);
+  if (row) {
+    db.prepare('DELETE FROM webauthn_challenges WHERE challenge = ?').run(challenge);
+  }
+  return row;
+}
+
+/**
+ * Clean up expired challenges
+ */
+function cleanupExpiredChallenges() {
+  const db = getDatabase();
+  db.prepare("DELETE FROM webauthn_challenges WHERE expires_at < datetime('now')").run();
+}
+
+/**
+ * Get or generate JWT secret from app_state
+ * @returns {string}
+ */
+function getOrCreateJwtSecret() {
+  const db = getDatabase();
+  const row = db.prepare("SELECT value FROM app_state WHERE key = 'jwt_secret'").get();
+  if (row) return row.value;
+
+  const crypto = require('crypto');
+  const secret = crypto.randomBytes(64).toString('hex');
+  db.prepare(
+    "INSERT INTO app_state (key, value, updated_at) VALUES ('jwt_secret', ?, datetime('now'))"
+  ).run(secret);
+  return secret;
+}
+
 module.exports = {
   insertLog,
   insertLogs,
@@ -579,5 +759,20 @@ module.exports = {
   getLogsForAnalysis,
   saveThreatIncident,
   getThreatTimeline,
-  resetThreatAnalysis
+  resetThreatAnalysis,
+  createUser,
+  getUserById,
+  getUserByEmail,
+  promoteToAdmin,
+  savePasskeyCredential,
+  getPasskeyCredentialsByUserId,
+  getPasskeyCredentialById,
+  updateCredentialCounter,
+  createInviteToken,
+  getInviteToken,
+  markInviteTokenUsed,
+  storeChallenge,
+  consumeChallenge,
+  cleanupExpiredChallenges,
+  getOrCreateJwtSecret
 };

@@ -160,13 +160,18 @@ html, body {
   font-weight: 500;
 }
 
+.header-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
 .threat-link {
   display: inline-block;
-  margin-top: 12px;
   font-size: 12px;
   font-weight: 600;
-  color: #FFFFFF;
-  background: rgba(255, 255, 255, 0.2);
+  color: var(--md-on-primary, #fff);
+  background: var(--md-primary, #5b6abf);
   padding: 4px 12px;
   border-radius: 12px;
   text-decoration: none;
@@ -174,8 +179,8 @@ html, body {
 }
 
 .threat-link:hover {
-  background: white;
-  color: var(--md-primary);
+  background: var(--md-primary-dark, #4a59a8);
+  color: #fff;
 }
 
 /* Stats Card */

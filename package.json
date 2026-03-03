@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch --inspect src/index.js",
+    "invite": "node scripts/invite.js",
+    "promote-admin": "node scripts/promote-admin.js",
     "docker:build": "docker build -t web-traffic-map .",
     "docker:run": "docker-compose up -d",
     "docker:stop": "docker-compose down"
@@ -28,8 +30,11 @@
   "dependencies": {
     "@google/genai": "^1.38.0",
     "@hono/node-server": "^1.19.9",
+    "@simplewebauthn/server": "^13.2.2",
     "better-sqlite3": "^12.6.2",
     "chokidar": "^5.0.0",
-    "hono": "^4.11.5"
+    "hono": "^4.11.5",
+    "jose": "^6.1.3",
+    "uuid": "^13.0.0"
   }
 }

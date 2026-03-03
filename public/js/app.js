@@ -25,6 +25,9 @@ const AppState = {
  * Initialize the application
  */
 async function initApp() {
+  // Require authentication before loading anything
+  if (!Auth.requireAuth()) return;
+
   console.log('Initializing Web Traffic Map...');
 
   // Set default date range (today in local timezone)
@@ -59,6 +62,9 @@ async function initApp() {
   document.getElementById('refresh-data').addEventListener('click', () => {
     applyFilters();
   });
+
+  // Show admin panel if user is admin
+  initAdminPanel();
 
   // Start live polling for new hits
   startLivePolling();
@@ -161,7 +167,7 @@ async function fetchAPI(endpoint, params = {}) {
     }
   });
 
-  const response = await fetch(url);
+  const response = await Auth.fetch(url);
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);
   }
@@ -528,6 +534,17 @@ function debounce(func, wait) {
     clearTimeout(timeout);
     timeout = setTimeout(later, wait);
   };
+}
+
+/**
+ * Show admin link if current user is admin
+ */
+function initAdminPanel() {
+  const user = Auth.getUser();
+  if (!user || !user.is_admin) return;
+
+  const link = document.getElementById('admin-link');
+  if (link) link.style.display = '';
 }
 
 // Initialize when DOM is ready

@@ -256,11 +256,17 @@
     </div>
   </div>
 
+  <script src="/js/auth.js"></script>
   <script>
+    // Require authentication
+    if (!Auth.isAuthenticated()) {
+      window.location.href = '/login';
+    }
+
     async function loadThreats() {
       const container = document.getElementById('timeline-container');
       try {
-        const response = await fetch('/api/threats');
+        const response = await Auth.fetch('/api/threats');
         const result = await response.json();
         
         if (result.success && result.data.length > 0) {
@@ -321,7 +327,7 @@
       btn.textContent = 'Resetting...';
       
       try {
-        await fetch('/api/threats/rescan', { method: 'POST' });
+        await Auth.fetch('/api/threats/rescan', { method: 'POST' });
         alert('Scan reset! The backend worker will now begin re-analyzing all logs.');
         window.location.reload();
       } catch (e) {

@@ -17,10 +17,19 @@ const { queueGeoLookups } = require('../geo/lookup');
  * @returns {Promise<number>} Number of entries processed
  */
 async function processLogFile(filePath, fromStart = false) {
-  const startOffset = fromStart ? 0 : getFilePosition(filePath);
+  let startOffset = fromStart ? 0 : getFilePosition(filePath);
 
   // Get file size
   const stats = fs.statSync(filePath);
+
+  // Detect log rotation: file is smaller than our stored offset
+  if (stats.size < startOffset) {
+    console.log(`Log rotation detected for ${require('path').basename(filePath)}: file size ${stats.size} < stored offset ${startOffset}. Resetting to 0.`);
+    startOffset = 0;
+    setFilePosition(filePath, 0);
+  }
+
+  // No new content
   if (stats.size <= startOffset) {
     return 0;
   }

@@ -17,6 +17,7 @@ const { createApiRoutes } = require('./api/routes');
 const { startWatcher, stopWatcher } = require('./ingestion/watcher');
 const { processUngelocatedIps } = require('./geo/lookup');
 const { startThreatWorker } = require('./ingestion/threat-worker');
+const { cleanupExpiredChallenges } = require('./db/queries');
 
 /**
  * Create and configure the Hono application
@@ -35,7 +36,12 @@ function createApp() {
   // Health check
   app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
+  // Auth pages (public, no JWT)
+  app.get('/login', serveStatic({ path: './public/login.html' }));
+  app.get('/register', serveStatic({ path: './public/register.html' }));
+
   // Page routes
+  app.get('/admin', serveStatic({ path: './public/admin.html' }));
   app.get('/threat-analysis', serveStatic({ path: './public/threats.html' }));
 
   // Serve static files from public directory
@@ -96,6 +102,15 @@ async function main() {
     }
   }, 300000);
 
+  // Clean up expired WebAuthn challenges every 10 minutes
+  setInterval(() => {
+    try {
+      cleanupExpiredChallenges();
+    } catch (e) {
+      console.error('Error cleaning up challenges:', e);
+    }
+  }, 600000);
+
   // Create and start server
   const app = createApp();
 
@@ -106,7 +121,13 @@ async function main() {
     hostname: '0.0.0.0'
   }, (info) => {
     console.log(`\nServer running at http://localhost:${info.port}`);
-    console.log('\nAPI Endpoints:');
+    console.log('\nAuth Endpoints (public):');
+    console.log('  POST /api/auth/register/options - WebAuthn registration options');
+    console.log('  POST /api/auth/register/verify  - Verify registration');
+    console.log('  POST /api/auth/login/options    - WebAuthn login options');
+    console.log('  POST /api/auth/login/verify     - Verify login');
+    console.log('\nProtected API Endpoints (JWT required):');
+    console.log('  GET  /api/auth/me    - Current user info');
     console.log('  GET  /api/logs       - Query log entries');
     console.log('  GET  /api/stats      - Get statistics');
     console.log('  GET  /api/locations  - Get map location data');
