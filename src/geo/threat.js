@@ -4,14 +4,11 @@
  * @module geo/threat
  */
 
-const { GoogleGenAI } = require('@google/genai');
 const { saveThreatIncident } = require('../db/queries');
-
-// Initialize AI outside the handler to reuse connection
-let genAI = null;
+const { redactSecrets } = require('./redact');
 
 /**
- * Call Gemini API to analyze a batch of logs for a specific IP and Domain
+ * Call an OpenAI-compatible API to analyze logs for a specific IP and domain
  * @param {string} ip - IP address
  * @param {Array} requests - List of request objects
  * @param {number} timestamp - Representative timestamp for the batch
@@ -19,14 +16,12 @@ let genAI = null;
  * @returns {Promise<boolean>} True if a threat was found and saved
  */
 async function analyzeIpBehavior(ip, requests, timestamp, host) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return runHeuristicAnalysis(ip, requests, timestamp, host);
-  }
+  const apiUrl = process.env.OPEN_AI_API_URL || 'https://openrouter.ai/api/v1/chat/completions';
+  const apiKey = process.env.OPEN_AI_API_KEY;
+  const modelName = process.env.OPEN_AI_API_MODEL;
 
-  // Initialize SDK if not already done
-  if (!genAI) {
-    genAI = new GoogleGenAI({ apiKey });
+  if (!apiUrl || !apiKey || !modelName) {
+    return runHeuristicAnalysis(ip, requests, timestamp, host);
   }
 
   const prompt = `
@@ -36,12 +31,12 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
     - SQL injection patterns
     - Excessive scanning/crawling for sensitive files (.env, .git, config.php, etc.)
     - Suspicious User-Agents or exploit attempts
-    
+
     Requests (all entries in this 1-hour window):
-    ${JSON.stringify(requests, null, 2)}
-    
+    ${JSON.stringify(redactSecrets(requests), null, 2)}
+
     If the behavior is safe/normal (e.g. standard health checks, simple home page hits), return: {"threat_found": false}
-    
+
     If the behavior is suspicious or malicious, provide your analysis in JSON format:
     {
       "threat_found": true,
@@ -54,33 +49,27 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
   `;
 
   try {
-    const config = {
-      thinkingConfig: {
-        thinkingLevel: 'HIGH',
+    const response = await fetch(apiUrl, {
+      signal: AbortSignal.timeout(30000),
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://github.com/tamilupk/web-traffic-map',
+        'X-Title': 'Web Traffic Map'
       },
-    };
-    
-    const model = 'gemini-3-flash-preview';
-    const contents = [
-      {
-        role: 'user',
-        parts: [{ text: prompt }],
-      },
-    ];
-
-    const response = await genAI.models.generateContentStream({
-      model,
-      config,
-      contents,
+      body: JSON.stringify({
+        model: modelName,
+        messages: [{ role: 'user', content: prompt }]
+      })
     });
 
-    let fullText = '';
-    for await (const chunk of response) {
-      const part = chunk.candidates?.[0]?.content?.parts?.[0];
-      if (part && part.text) {
-        fullText += part.text;
-      }
+    if (!response.ok) {
+      throw new Error(`API returned status: ${response.status} ${response.statusText}`);
     }
+
+    const data = await response.json();
+    const fullText = data.choices?.[0]?.message?.content || '';
 
     let content;
     try {
@@ -122,9 +111,9 @@ async function analyzeIpBehavior(ip, requests, timestamp, host) {
 function runHeuristicAnalysis(ip, requests, timestamp, host) {
   let score = 0;
   const findings = [];
-  
+
   const sensitivePaths = [
-    '.env', '.git', 'config.php', 'config', '.php', '.sql', '.sh', '.bak', 
+    '.env', '.git', 'config.php', 'config', '.php', '.sql', '.sh', '.bak',
     'admin', 'backup', 'passwd', 'etc/', 'win.ini', 'eval(', 'base64_',
     'example', 'sample', 'install', 'uninstall', 'remove', 'deploy', 'init'
   ];
@@ -144,7 +133,7 @@ function runHeuristicAnalysis(ip, requests, timestamp, host) {
   if (score >= 15) {
     const level = score > 80 ? 'critical' : (score > 50 ? 'high' : (score > 25 ? 'medium' : 'low'));
     console.log(`\n    🔍 [Heuristic] Pattern Match: ${ip} -> ${host} (Score: ${score})`);
-    
+
     const explanation = `This IP triggered a heuristic match by attempting to access ${findings.length} sensitive system files or configuration templates. This behavior is highly characteristic of automated vulnerability scanning tools looking for misconfigured servers or exposed secrets.`;
 
     saveThreatIncident({

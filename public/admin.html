@@ -223,6 +223,7 @@
     </div>
   </div>
 
+  <script src="/js/security.js"></script>
   <script src="/js/auth.js"></script>
   <script>
     // Require admin
@@ -291,10 +292,10 @@
       container.innerHTML = invites.map((inv, i) => `
         <div class="invite-item">
           <div class="invite-item-header">
-            <span class="invite-email">${inv.email}</span>
+            <span class="invite-email">${escapeHtml(inv.email)}</span>
             <span class="invite-badge">${inv.existing_user ? 'Additional Passkey' : 'New User'}</span>
           </div>
-          <a href="${inv.registration_url}" target="_blank" class="invite-url">${inv.registration_url}</a>
+          <a href="${escapeHtml(safeInviteUrl(inv.registration_url))}" target="_blank" rel="noopener noreferrer" class="invite-url">${escapeHtml(inv.registration_url)}</a>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <span class="invite-meta">Expires: ${new Date(inv.expires_at).toLocaleString()}</span>
             <button class="copy-btn" onclick="copyUrl(${i})">Copy Link</button>

@@ -721,7 +721,7 @@ function consumeChallenge(challenge) {
  */
 function cleanupExpiredChallenges() {
   const db = getDatabase();
-  db.prepare("DELETE FROM webauthn_challenges WHERE expires_at < datetime('now')").run();
+  db.prepare("DELETE FROM webauthn_challenges WHERE datetime(expires_at) <= datetime('now')").run();
 }
 
 /**

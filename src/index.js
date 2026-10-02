@@ -154,8 +154,12 @@ async function main() {
   });
 }
 
-// Run the application
-main().catch((error) => {
-  console.error('Fatal error:', error);
-  process.exit(1);
-});
+// Importing createApp for checks must not start background workers or a listener.
+if (require.main === module) {
+  main().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+  });
+}
+
+module.exports = { createApp };

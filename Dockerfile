@@ -2,7 +2,7 @@
 # Multi-stage build for smaller final image
 
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -10,15 +10,16 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN apk add --no-cache python3 make g++ \
+  && npm ci --omit=dev
 
 # Production stage
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
-# Install required build tools for better-sqlite3 and curl for healthcheck
-RUN apk add --no-cache python3 make g++ curl
+# Runtime healthcheck utility (native dependencies are built in the builder)
+RUN apk add --no-cache curl
 
 # Copy node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
@@ -28,9 +29,6 @@ COPY package*.json ./
 COPY src ./src
 COPY public ./public
 COPY scripts ./scripts
-
-# Rebuild better-sqlite3 for Alpine
-RUN npm rebuild better-sqlite3
 
 # Create directories for data and logs
 RUN mkdir -p /data /logs

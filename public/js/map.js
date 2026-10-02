@@ -33,7 +33,7 @@ const BUBBLE_COLORS = [
 /**
  * Initialize the Leaflet map
  */
-function initMap() {
+function initMap(cartoBasemapApiKey = '') {
   // Create map centered on world view
   map = L.map('map', {
     center: [20, 0],
@@ -45,7 +45,9 @@ function initMap() {
   });
 
   // Add CartoDB Voyager tiles (clean, modern style)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  const tileUrl = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+  const keyParam = cartoBasemapApiKey ? `?key=${encodeURIComponent(cartoBasemapApiKey)}` : '';
+  L.tileLayer(tileUrl + keyParam, {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 20
@@ -171,9 +173,9 @@ function createBubbleMarker(location, size, color) {
 }
 
 /**
- * Create popup content HTML
+ * Create popup content with safely rendered details and a bound action
  * @param {Object} location - Location data
- * @returns {string} HTML content
+ * @returns {HTMLElement} Popup content
  */
 function createPopupContent(location) {
   let title = '';
@@ -183,17 +185,17 @@ function createPopupContent(location) {
     title = `${location.country_flag || ''} ${location.city}`;
     details = `<div class="popup-stat">
       <span class="popup-stat-label">Region</span>
-      <span class="popup-stat-value">${location.region || '-'}</span>
+      <span class="popup-stat-value">${escapeHtml(location.region || '-')}</span>
     </div>
     <div class="popup-stat">
       <span class="popup-stat-label">Country</span>
-      <span class="popup-stat-value">${location.country || '-'}</span>
+      <span class="popup-stat-value">${escapeHtml(location.country || '-')}</span>
     </div>`;
   } else if (location.region) {
     title = `${location.country_flag || ''} ${location.region}`;
     details = `<div class="popup-stat">
       <span class="popup-stat-label">Country</span>
-      <span class="popup-stat-value">${location.country || '-'}</span>
+      <span class="popup-stat-value">${escapeHtml(location.country || '-')}</span>
     </div>`;
   } else if (location.country) {
     title = `${location.country_flag || ''} ${location.country}`;
@@ -201,17 +203,14 @@ function createPopupContent(location) {
     title = location.client_ip;
     details = `<div class="popup-stat">
       <span class="popup-stat-label">Location</span>
-      <span class="popup-stat-value">${location.city || ''} ${location.region || ''} ${location.country || ''}</span>
+      <span class="popup-stat-value">${escapeHtml(location.city || '')} ${escapeHtml(location.region || '')} ${escapeHtml(location.country || '')}</span>
     </div>`;
   }
 
   // Add "Show Data" button
-  const showDataButton = `<button class="popup-show-data-btn" onclick="showLocationData(${JSON.stringify(location).replace(/"/g, '&quot;')})">
-        Show Data
-       </button>`;
-
-  return `<div class="popup-content">
-    <div class="popup-title">${title}</div>
+  const content = document.createElement('div');
+  content.innerHTML = `<div class="popup-content">
+    <div class="popup-title">${escapeHtml(title)}</div>
     <div class="popup-stat">
       <span class="popup-stat-label">Requests</span>
       <span class="popup-stat-value">${formatNumber(location.request_count)}</span>
@@ -221,8 +220,10 @@ function createPopupContent(location) {
       <span class="popup-stat-value">${formatNumber(location.unique_ips)}</span>
     </div>
     ${details}
-    ${showDataButton}
+    <button class="popup-show-data-btn">Show Data</button>
   </div>`;
+  content.querySelector('.popup-show-data-btn').addEventListener('click', () => showLocationData(location));
+  return content;
 }
 
 /**
@@ -331,12 +332,12 @@ async function showLocationData(location) {
           <tr class="group-row" data-group="${index}" onclick="togglePathRows(${index})">
             <td class="expand-cell"><span class="expand-icon">▶</span></td>
             <td class="domain-cell">${escapeHtml(group.host)}</td>
-            <td><span class="status-badge status-${getStatusClass(group.status)}">${group.status}</span></td>
-            <td><span class="method-badge">${group.method}</span></td>
-            <td class="device-cell" title="${group.device_type}">${getDeviceIcon(group.device_type)}</td>
-            <td class="ip-cell">${group.client_ip}</td>
+            <td><span class="status-badge status-${getStatusClass(group.status)}">${escapeHtml(group.status)}</span></td>
+            <td><span class="method-badge">${escapeHtml(group.method)}</span></td>
+            <td class="device-cell" title="${escapeHtml(group.device_type)}">${getDeviceIcon(group.device_type)}</td>
+            <td class="ip-cell">${escapeHtml(group.client_ip)}</td>
             <td class="isp-cell" title="${escapeHtml(group.isp)}">${escapeHtml(truncateText(group.isp, 20))}</td>
-            <td class="count-cell">${group.count}</td>
+            <td class="count-cell">${escapeHtml(group.count)}</td>
           </tr>
           ${pathRows}
         `;
@@ -421,17 +422,6 @@ function truncateText(text, maxLength) {
   return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
 }
 
-/**
- * Escape HTML to prevent XSS
- * @param {string} text - Text to escape
- * @returns {string} Escaped text
- */
-function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
 
 /**
  * Update map markers with new location data

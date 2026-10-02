@@ -9,3 +9,8 @@ data/
 nginx-logs/
 .DS_Store
 *.log
+.claude/
+test/
+test-results/
+coverage/
+.github/

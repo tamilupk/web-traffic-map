@@ -5,6 +5,9 @@
  */
 
 const { Hono } = require('hono');
+const { config } = require('../config');
+const { bodyLimit } = require('hono/body-limit');
+const { createAuthRateLimiter } = require('../auth/rate-limit');
 const { authMiddleware, adminMiddleware } = require('../auth/middleware');
 const {
   handleRegisterOptions,
@@ -36,6 +39,13 @@ function createApiRoutes() {
 
   // ===== Public auth routes (no JWT required) =====
   const authPublic = new Hono();
+  const authRateLimiter = createAuthRateLimiter();
+  const authBodyLimit = bodyLimit({
+    maxSize: 64 * 1024,
+    onError: (c) => c.json({ success: false, error: 'Authentication request is too large' }, 413)
+  });
+  authPublic.use('/register/*', authRateLimiter, authBodyLimit);
+  authPublic.use('/login/*', authRateLimiter, authBodyLimit);
   authPublic.post('/register/options', handleRegisterOptions);
   authPublic.post('/register/verify', handleRegisterVerify);
   authPublic.post('/login/options', handleLoginOptions);
@@ -49,6 +59,12 @@ function createApiRoutes() {
   // Auth info
   protectedApi.get('/auth/me', handleGetMe);
 
+  // Only browser-safe map configuration; never expose the full server config.
+  protectedApi.get('/map-config', (c) => {
+    c.header('Cache-Control', 'no-store');
+    return c.json({ cartoBasemapApiKey: config.cartoBasemapApiKey });
+  });
+
   // Log queries
   protectedApi.get('/logs', handleGetLogs);
 
@@ -60,7 +76,7 @@ function createApiRoutes() {
 
   // Threat analysis
   protectedApi.get('/threats', handleGetThreats);
-  protectedApi.post('/threats/rescan', handleRescanThreats);
+  protectedApi.post('/threats/rescan', adminMiddleware, handleRescanThreats);
 
   // Filter options
   protectedApi.get('/domains', handleGetDomains);
@@ -70,7 +86,7 @@ function createApiRoutes() {
   protectedApi.get('/status', handleGetStatus);
 
   // Geo processing trigger
-  protectedApi.post('/geo/process', handleProcessGeo);
+  protectedApi.post('/geo/process', adminMiddleware, handleProcessGeo);
 
   // Admin-only: invite users
   protectedApi.post('/admin/invite', adminMiddleware, handleAdminInvite);

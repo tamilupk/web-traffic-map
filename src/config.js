@@ -14,6 +14,9 @@ const config = {
   /** Server port */
   port: parseInt(process.env.PORT, 10) || 3000,
 
+  /** Browser-visible CARTO basemap key; restrict it to the website in CARTO */
+  cartoBasemapApiKey: process.env.CARTO_BASEMAP_API_KEY || '',
+
   /** SQLite database path */
   dbPath: process.env.DB_PATH || path.join(process.cwd(), 'data', 'traffic.db'),
 

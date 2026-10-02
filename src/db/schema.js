@@ -90,6 +90,23 @@ function createTables() {
     )
   `);
 
+  // Cached geolocation data used by map queries and background lookups
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS geo_cache (
+      ip TEXT PRIMARY KEY,
+      country TEXT,
+      country_code TEXT,
+      region TEXT,
+      city TEXT,
+      latitude REAL,
+      longitude REAL,
+      isp TEXT,
+      timezone TEXT,
+      country_flag TEXT,
+      cached_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
   // File positions for incremental ingestion
   db.exec(`
     CREATE TABLE IF NOT EXISTS file_positions (

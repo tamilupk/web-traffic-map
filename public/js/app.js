@@ -47,7 +47,19 @@ async function initApp() {
   AppState.filters.end_date = endOfDay;
 
   // Initialize map
-  initMap();
+  let cartoBasemapApiKey = '';
+  try {
+    const response = await Auth.fetch('/api/map-config');
+    if (!response.ok) throw new Error('Could not load map configuration');
+    const mapConfig = await response.json();
+    cartoBasemapApiKey = mapConfig.cartoBasemapApiKey || '';
+  } catch (error) {
+    console.error('Error loading map configuration:', error);
+  }
+  if (!cartoBasemapApiKey) {
+    console.warn('CARTO_BASEMAP_API_KEY is not configured; basemap tiles may show a watermark.');
+  }
+  initMap(cartoBasemapApiKey);
 
   // Initialize filters
   initFilters();
@@ -303,8 +315,8 @@ function updateTopCountries(countries) {
     const li = document.createElement('li');
     li.className = 'country-item';
     li.innerHTML = `
-      <span class="country-flag">${country.country_flag || ''}</span>
-      <span class="country-name">${country.country}</span>
+      <span class="country-flag">${escapeHtml(country.country_flag || '')}</span>
+      <span class="country-name">${escapeHtml(country.country)}</span>
       <span class="country-count">${formatNumber(country.count)}</span>
     `;
     list.appendChild(li);
@@ -387,23 +399,23 @@ function showSnackbar(hit) {
     <div class="snackbar-content">
       <div class="snackbar-item full-width">
         <span class="snackbar-label">Domain</span>
-        <span class="snackbar-value" title="${hit.host}">${hit.host}</span>
+        <span class="snackbar-value" title="${escapeHtml(hit.host)}">${escapeHtml(hit.host)}</span>
       </div>
       <div class="snackbar-item">
         <span class="snackbar-label">IP Address</span>
-        <span class="snackbar-value">${hit.client_ip}</span>
+        <span class="snackbar-value">${escapeHtml(hit.client_ip)}</span>
       </div>
       <div class="snackbar-item">
         <span class="snackbar-label">Device</span>
-        <span class="snackbar-value">${hit.device_type || 'unknown'}</span>
+        <span class="snackbar-value">${escapeHtml(hit.device_type || 'unknown')}</span>
       </div>
       <div class="snackbar-item">
         <span class="snackbar-label">Location</span>
-        <span class="snackbar-value">${location}</span>
+        <span class="snackbar-value">${escapeHtml(location)}</span>
       </div>
       <div class="snackbar-item">
         <span class="snackbar-label">ISP</span>
-        <span class="snackbar-value" title="${hit.isp || 'unknown'}">${hit.isp || 'unknown'}</span>
+        <span class="snackbar-value" title="${escapeHtml(hit.isp || 'unknown')}">${escapeHtml(hit.isp || 'unknown')}</span>
       </div>
     </div>
     <div class="snackbar-progress" id="progress-${Date.now()}"></div>

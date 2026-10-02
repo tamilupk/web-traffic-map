@@ -95,6 +95,10 @@ async function handleRegisterVerify(c) {
       return c.json({ success: false, error: 'Challenge expired' }, 400);
     }
 
+    if (storedChallenge.type !== 'registration' || storedChallenge.user_id !== user.id) {
+      return c.json({ success: false, error: 'Invalid registration challenge' }, 400);
+    }
+
     const verification = await verifyRegistration(credential, storedChallenge.challenge);
     if (!verification.verified || !verification.registrationInfo) {
       return c.json({ success: false, error: 'Registration verification failed' }, 400);
@@ -158,6 +162,10 @@ async function handleLoginVerify(c) {
     }
     if (new Date(storedChallenge.expires_at) < new Date()) {
       return c.json({ success: false, error: 'Challenge expired' }, 400);
+    }
+
+    if (storedChallenge.type !== 'authentication') {
+      return c.json({ success: false, error: 'Invalid authentication challenge' }, 400);
     }
 
     // Look up the credential by ID

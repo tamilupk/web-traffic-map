@@ -256,6 +256,7 @@
     </div>
   </div>
 
+  <script src="/js/security.js"></script>
   <script src="/js/auth.js"></script>
   <script>
     // Require authentication
@@ -272,39 +273,41 @@
         if (result.success && result.data.length > 0) {
           container.innerHTML = '';
           result.data.forEach(incident => {
-            const findings = JSON.parse(incident.details || '[]');
+            const parsedFindings = JSON.parse(incident.details || '[]');
+            const findings = Array.isArray(parsedFindings) ? parsedFindings : [];
+            const level = ['low', 'medium', 'high', 'critical'].includes(incident.threat_level) ? incident.threat_level : 'low';
             const date = new Date(incident.incident_unix * 1000).toLocaleString();
             
             const card = document.createElement('div');
-            card.className = `threat-card level-${incident.threat_level}`;
+            card.className = `threat-card level-${level}`;
             card.innerHTML = `
               <div class="threat-time">${date}</div>
               <div class="threat-title-row">
-                <div class="threat-ip">${incident.ip}</div>
-                <span class="threat-badge badge-${incident.threat_level}">${incident.threat_level}</span>
+                <div class="threat-ip">${escapeHtml(incident.ip)}</div>
+                <span class="threat-badge badge-${level}">${escapeHtml(incident.threat_level)}</span>
               </div>
-              <div class="threat-domain">${incident.host || 'Unknown Domain'}</div>
-              <div class="threat-summary">${incident.summary}</div>
+              <div class="threat-domain">${escapeHtml(incident.host || 'Unknown Domain')}</div>
+              <div class="threat-summary">${escapeHtml(incident.summary)}</div>
               <div class="threat-findings">
                 <div style="width: 100%; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--md-on-surface-variant); margin-bottom: 8px;">Identified Patterns:</div>
-                ${findings.map(f => `<div class="finding-chip">${f}</div>`).join('')}
+                ${findings.map(f => `<div class="finding-chip">${escapeHtml(f)}</div>`).join('')}
               </div>
               ${incident.explanation ? `<div class="threat-explanation">
                 <div style="font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 4px; color: var(--md-primary); letter-spacing: 0.5px;">AI Analysis:</div>
-                ${incident.explanation}
+                ${escapeHtml(incident.explanation)}
               </div>` : ''}
               <div class="threat-footer">
                 <div class="footer-item">
-                  <strong>ISP:</strong> ${incident.isp || 'Unknown'}
+                  <strong>ISP:</strong> ${escapeHtml(incident.isp || 'Unknown')}
                 </div>
                 <div class="footer-item">
-                  <strong>Location:</strong> ${incident.country_flag || ''} ${incident.country || 'Unknown'}
+                  <strong>Location:</strong> ${escapeHtml(incident.country_flag || '')} ${escapeHtml(incident.country || 'Unknown')}
                 </div>
                 <div class="footer-item">
-                  <strong>Requests:</strong> ${incident.request_count}
+                  <strong>Requests:</strong> ${escapeHtml(incident.request_count)}
                 </div>
                 <div class="footer-item">
-                  <strong>Risk:</strong> ${incident.risk_score}/100
+                  <strong>Risk:</strong> ${escapeHtml(incident.risk_score)}/100
                 </div>
               </div>
             `;
@@ -319,6 +322,8 @@
       }
     }
 
+    document.getElementById('rescan-btn').hidden = !Auth.getUser()?.is_admin;
+    if (!Auth.getUser()?.is_admin) document.getElementById('rescan-btn').style.display = 'none';
     document.getElementById('rescan-btn').addEventListener('click', async () => {
       if (!confirm('This will clear history and restart scanning from the beginning. Continue?')) return;
       
